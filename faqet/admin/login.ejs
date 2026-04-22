@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - ModernShop</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="admin-login-container">
+    <div class="admin-login-card">
+        <div class="admin-logo">
+            <svg width="60" height="60" viewBox="0 0 40 40" fill="none">
+                <rect width="40" height="40" rx="8" fill="url(#gradient-admin)"/>
+                <path d="M20 12v8l6 3" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="20" cy="20" r="8" stroke="white" stroke-width="2"/>
+                <defs>
+                    <linearGradient id="gradient-admin" x1="0" y1="0" x2="40" y2="40">
+                        <stop offset="0%" style="stop-color:#667eea"/>
+                        <stop offset="100%" style="stop-color:#764ba2"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+        </div>
+
+        <h1>Admin Panel</h1>
+        <p class="subtitle">Login to manage your shop</p>
+
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" placeholder="admin@shop.com">
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="Enter your password">
+        </div>
+
+        <button id="login-btn" class="admin-btn">
+            <span>Login to Dashboard</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+        </button>
+
+        <div class="hint">
+            <p><strong>Default Credentials:</strong></p>
+            <p>Email: admin@shop.com</p>
+            <p>Password: admin123</p>
+        </div>
+
+        <a href="/" class="back-home">← Back to Shop</a>
+    </div>
+</div>
+
+<script>
+    document.getElementById('login-btn').addEventListener('click', function() {
+        let email = document.getElementById('email').value
+        let password = document.getElementById('password').value
+
+        if (!email || !password) {
+            return alert('Please fill all fields')
+        }
+
+        fetch('/admin/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.mesazhi)
+            } else {
+                window.location.href = '/admin'
+            }
+        })
+    })
+
+    // Enter key support
+    document.getElementById('password').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('login-btn').click()
+        }
+    })
+</script>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .admin-login-container {
+        width: 100%;
+        max-width: 450px;
+    }
+
+    .admin-login-card {
+        background: white;
+        border-radius: 20px;
+        padding: 3rem;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        text-align: center;
+    }
+
+    .admin-logo {
+        margin: 0 auto 1.5rem;
+    }
+
+    h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+        color: #6b7280;
+        margin-bottom: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+        text-align: left;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 0.875rem 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        font-size: 1rem;
+        transition: all 0.3s;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .admin-btn {
+        width: 100%;
+        padding: 1rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 2rem;
+    }
+
+    .admin-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .admin-btn svg {
+        stroke-width: 2.5;
+    }
+
+    .hint {
+        margin-top: 2rem;
+        padding: 1rem;
+        background: #f3f4f6;
+        border-radius: 10px;
+        font-size: 0.85rem;
+        color: #6b7280;
+    }
+
+    .hint p {
+        margin: 0.25rem 0;
+    }
+
+    .back-home {
+        display: inline-block;
+        margin-top: 1.5rem;
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .back-home:hover {
+        text-decoration: underline;
+    }
+</style>
+
+</body>
+</html>

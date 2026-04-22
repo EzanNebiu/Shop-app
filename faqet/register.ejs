@@ -1,0 +1,248 @@
+<%- include('navbar.ejs', {perdoruesi: false, isLoggedIn: false}) %>
+
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h2>Krijo Llogari</h2>
+            <p>Bashkohuni me ne sot</p>
+        </div>
+
+        <div class="auth-form">
+            <div class="form-group">
+                <label for="emri">Emri i Plotë</label>
+                <input type="text" name="emri" id="emri" placeholder="Emri Mbiemri">
+            </div>
+
+            <div class="form-group">
+                <label for="email">Adresa e Emailit</label>
+                <input type="email" name="email" id="email" placeholder="ju@shembull.com">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Fjalëkalimi</label>
+                <input type="password" name="password" id="password" placeholder="Krijoni një fjalëkalim">
+            </div>
+
+            <div class="form-group">
+                <label for="password_konfirmo">Konfirmo Fjalëkalimin</label>
+                <input type="password" name="password_konfirmo" id="password_konfirmo" placeholder="Konfirmoni fjalëkalimin tuaj">
+            </div>
+
+            <button type="button" id="register-button" class="submit-btn">
+                <span>Krijo Llogari</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+            </button>
+
+            <div class="auth-footer">
+                <p>Keni tashmë llogari? <a href="/login">Kyçu</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let register_button = document.querySelector("#register-button")
+
+    register_button.addEventListener('click', function() {
+        let emri = document.querySelector('#emri').value
+        let email = document.querySelector('#email').value
+        let password = document.querySelector('#password').value
+        let password_konfirmo = document.querySelector('#password_konfirmo').value
+
+        if (emri == "" || email == "" || password == "" || password_konfirmo == "") {
+            return alert("Ju lutemi plotësoni të gjitha fushat!");
+        }
+
+        const emailRegex = /^[\w.-]+@[a-zA-Z\d.-]+\.[a-zA-Z]{2,}$/;
+
+        if(!emailRegex.test(email)) {
+            return alert('Emaili nuk është i vlefshëm')
+        }
+
+        if(password.length < 3) {
+            return alert("Fjalëkalimi duhet të jetë të paktën 3 karaktere")
+        }
+
+        if (password != password_konfirmo) {
+            return alert('Fjalëkalimet nuk përputhen!')
+        }
+
+       
+        let data = {
+            emri: emri,
+            email: email,
+            password: password,
+            password_konfirmo: password_konfirmo
+        }
+
+        fetch('/register', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        }).then(function(response) {
+            return response.json()
+        }).then(function(data) {
+            if (data.error) {
+                alert(data.mesazhi)
+            } else {
+                alert('Regjistrimi u krye me sukses! Ju lutemi kyçuni.')
+                window.location.href = 'login'
+            }
+        })
+        
+    })
+
+</script>
+
+<style>
+    .auth-container {
+        min-height: calc(100vh - 200px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .auth-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        padding: 3rem;
+        width: 100%;
+        max-width: 450px;
+    }
+
+    .auth-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .auth-header h2 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+
+    .auth-header p {
+        color: #6b7280;
+        font-size: 1rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 0.875rem 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        font-size: 1rem;
+        transition: all 0.3s;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-group input::placeholder {
+        color: #9ca3af;
+    }
+
+    .submit-btn {
+        width: 100%;
+        padding: 1rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 20px -5px rgba(102, 126, 234, 0.4);
+    }
+
+    .submit-btn svg {
+        stroke-width: 2.5;
+    }
+
+    .auth-footer {
+        text-align: center;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .auth-footer p {
+        color: #6b7280;
+    }
+
+    .auth-footer a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .auth-footer a:hover {
+        text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+        .auth-container {
+            padding: 1rem;
+        }
+
+        .auth-card {
+            padding: 2rem 1.5rem;
+        }
+
+        .auth-header h2 {
+            font-size: 1.75rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .auth-card {
+            padding: 1.5rem 1rem;
+        }
+
+        .auth-header h2 {
+            font-size: 1.5rem;
+        }
+
+        .form-group input {
+            padding: 0.75rem;
+            font-size: 0.95rem;
+        }
+
+        .submit-btn {
+            padding: 0.875rem;
+            font-size: 0.95rem;
+        }
+    }
+</style>
+
+<%- include('footer.ejs') %>

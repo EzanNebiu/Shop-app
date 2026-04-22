@@ -1,0 +1,274 @@
+<%- include('navbar.ejs', {perdoruesi: perdoruesi, isLoggedIn: perdoruesi}) %>
+
+<div class="profile-container">
+    <div class="profile-card">
+        <div class="profile-header">
+            <div class="profile-avatar-large">
+                <%= perdoruesi.emri.charAt(0).toUpperCase() %>
+            </div>
+            <h2>Profili Im</h2>
+            <p>Përditësoni informacionin e llogarisë tuaj</p>
+        </div>
+
+        <div class="profile-form">
+            <div class="form-group">
+                <label for="emri">Emri i Plotë</label>
+                <input type="text" name="emri" id="emri" value="<%= perdoruesi.emri %>">
+            </div>
+
+            <div class="form-group">
+                <label for="email">Adresa e Emailit</label>
+                <input type="email" name="email" id="email" value="<%= perdoruesi.email %>">
+            </div>
+
+            <div class="form-divider">
+                <span>Ndrysho Fjalëkalimin (Opsionale)</span>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Fjalëkalimi i Ri</label>
+                <input type="password" name="password" id="password" placeholder="Lëreni bosh për të mbajtur të tanishmen">
+            </div>
+
+            <div class="form-group">
+                <label for="password_konfirmo">Konfirmo Fjalëkalimin e Ri</label>
+                <input type="password" name="password_konfirmo" id="password_konfirmo" placeholder="Konfirmoni fjalëkalimin e ri">
+            </div>
+
+            <button type="button" id="profile-button" class="update-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                <span>Përditëso Profilin</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let profile_button = document.querySelector("#profile-button")
+
+    profile_button.addEventListener('click', function() {
+        let emri = document.querySelector('#emri').value
+        let email = document.querySelector('#email').value
+        let password = document.querySelector('#password').value
+        let password_konfirmo = document.querySelector('#password_konfirmo').value
+
+        if (emri == "" || email == "") {
+            return alert("Emri dhe emaili janë të nevojshëm!");
+        }
+
+        const emailRegex = /^[\w.-]+@[a-zA-Z\d.-]+\.[a-zA-Z]{2,}$/;
+
+        if(!emailRegex.test(email)) {
+            return alert('Emaili nuk është i vlefshëm')
+        }
+
+        if (password != "" || password_konfirmo != "") {
+            if(password.length < 3) {
+                return alert("Fjalëkalimi duhet të jetë të paktën 3 karaktere")
+            }
+
+            if (password != password_konfirmo) {
+                return alert('Fjalëkalimet nuk përputhen!')
+            }
+        }
+       
+        let data = {
+            emri: emri,
+            email: email,
+            password: password,
+            password_konfirmo: password_konfirmo
+        }
+
+        fetch('/ndrysho_profilin', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        }).then(function(response) {
+            return response.json()
+        }).then(function(data) {
+            if(data.error) {
+                alert(data.mesazhi)
+            } else {
+                alert('Profili u përditësua me sukses!')
+                window.location.reload()
+            }
+        })
+        
+    })
+</script>
+
+<style>
+    .profile-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 3rem 2rem;
+        min-height: calc(100vh - 200px);
+    }
+
+    .profile-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        padding: 3rem;
+    }
+
+    .profile-header {
+        text-align: center;
+        margin-bottom: 2.5rem;
+    }
+
+    .profile-avatar-large {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0 auto 1.5rem;
+        box-shadow: 0 10px 15px -3px rgba(102, 126, 234, 0.3);
+    }
+
+    .profile-header h2 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+
+    .profile-header p {
+        color: #6b7280;
+        font-size: 1rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 0.875rem 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        font-size: 1rem;
+        transition: all 0.3s;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-group input::placeholder {
+        color: #9ca3af;
+    }
+
+    .form-divider {
+        margin: 2rem 0;
+        text-align: center;
+        position: relative;
+    }
+
+    .form-divider::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: #e5e7eb;
+    }
+
+    .form-divider span {
+        position: relative;
+        background: white;
+        padding: 0 1rem;
+        color: #6b7280;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    .update-btn {
+        width: 100%;
+        padding: 1.25rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        margin-top: 2rem;
+    }
+
+    .update-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 20px -5px rgba(102, 126, 234, 0.4);
+    }
+
+    .update-btn svg {
+        stroke-width: 2;
+    }
+
+    @media (max-width: 768px) {
+        .profile-container {
+            padding: 2rem 1rem;
+        }
+
+        .profile-card {
+            padding: 2rem 1.5rem;
+        }
+
+        .profile-header h2 {
+            font-size: 1.75rem;
+        }
+
+        .profile-avatar-large {
+            width: 80px;
+            height: 80px;
+            font-size: 2rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .profile-card {
+            padding: 1.5rem 1rem;
+        }
+
+        .profile-header h2 {
+            font-size: 1.5rem;
+        }
+
+        .form-group input {
+            padding: 0.75rem;
+        }
+
+        .update-btn {
+            padding: 1rem;
+            font-size: 0.95rem;
+        }
+    }
+</style>
+
+<%- include('footer.ejs') %>

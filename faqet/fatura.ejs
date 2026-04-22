@@ -1,0 +1,464 @@
+<%- include('navbar.ejs', {
+    perdoruesi: perdoruesi,
+    isLoggedIn: isLoggedIn
+}) %>
+
+<div class="invoice-container">
+    <div class="invoice-card">
+        <!-- Success Header -->
+        <div class="success-header">
+            <div class="success-icon">
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+            </div>
+            <h1>Order Successful!</h1>
+            <p>Thank you for your purchase</p>
+        </div>
+
+        <!-- Invoice Header -->
+        <div class="invoice-header">
+            <div class="company-info">
+                <div class="company-logo">
+                    <svg width="50" height="50" viewBox="0 0 40 40" fill="none">
+                        <rect width="40" height="40" rx="8" fill="url(#gradient-invoice)"/>
+                        <path d="M12 20L18 26L28 14" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                        <defs>
+                            <linearGradient id="gradient-invoice" x1="0" y1="0" x2="40" y2="40">
+                                <stop offset="0%" style="stop-color:#667eea"/>
+                                <stop offset="100%" style="stop-color:#764ba2"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <span class="company-name">E-commerce</span>
+                </div>
+                <div class="company-details">
+                    <p>E-commerce Store</p>
+                    <p>Prishtine, Kosovo</p>
+                    <p>contact@modernshop.com</p>
+                </div>
+            </div>
+
+            <div class="invoice-meta">
+                <div class="invoice-number">
+                    <span class="label">Invoice #</span>
+                    <span class="value"><%= blerja.blerja_id %></span>
+                </div>
+                <div class="invoice-date">
+                    <span class="label">Date</span>
+                    <span class="value"><%= new Date(blerja.data_e_blerjes).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) %></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer Info -->
+        <div class="customer-section">
+            <h3>Bill To</h3>
+            <div class="customer-info">
+                <p class="customer-name"><%= perdoruesi.emri %></p>
+                <p class="customer-email"><%= perdoruesi.email %></p>
+            </div>
+        </div>
+
+        <!-- Items Table -->
+        <div class="items-section">
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th class="text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <div class="product-cell">
+                                <div class="product-image" style="background-image: url('<%= blerja.foto %>');"></div>
+                                <div class="product-info">
+                                    <span class="product-name"><%= blerja.emri %></span>
+                                    <span class="product-id">ID: <%= blerja.produkti_id %></span>
+                                </div>
+                            </div>
+                        </td>
+                        <td><%= blerja.sasia %></td>
+                        <td>€<%= (blerja.cmimi_total / blerja.sasia).toFixed(2) %></td>
+                        <td class="text-right">€<%= blerja.cmimi_total %></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Total Section -->
+        <div class="totals-section">
+            <div class="total-row subtotal">
+                <span>Subtotal</span>
+                <span>€<%= blerja.cmimi_total %></span>
+            </div>
+            <div class="total-row tax">
+                <span>Tax (0%)</span>
+                <span>€0.00</span>
+            </div>
+            <div class="total-row grand-total">
+                <span>Total</span>
+                <span>€<%= blerja.cmimi_total %></span>
+            </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="invoice-actions">
+            <button onclick="window.print()" class="print-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                    <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                Print Invoice
+            </button>
+            <a href="/" class="continue-btn">
+                Continue Shopping
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+            </a>
+        </div>
+
+        <!-- Thank You Message -->
+        <div class="thank-you">
+            <p>Thank you for shopping with us!</p>
+            <p class="small-text">A confirmation email has been sent to <%= perdoruesi.email %></p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .invoice-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 3rem 2rem;
+        min-height: calc(100vh - 200px);
+    }
+
+    .invoice-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    /* Success Header */
+    .success-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 3rem 2rem;
+        text-align: center;
+    }
+
+    .success-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 1.5rem;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .success-icon svg {
+        stroke-width: 2.5;
+    }
+
+    .success-header h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .success-header p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+    }
+
+    /* Invoice Header */
+    .invoice-header {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        padding: 2.5rem;
+        border-bottom: 2px solid #f3f4f6;
+    }
+
+    .company-logo {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .company-name {
+        font-size: 1.5rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .company-details p {
+        color: #6b7280;
+        font-size: 0.95rem;
+        margin: 0.25rem 0;
+    }
+
+    .invoice-meta {
+        text-align: right;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .invoice-number, .invoice-date {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .invoice-meta .label {
+        color: #6b7280;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .invoice-meta .value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    /* Customer Section */
+    .customer-section {
+        padding: 2rem 2.5rem;
+        background: #f9fafb;
+    }
+
+    .customer-section h3 {
+        color: #6b7280;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 1rem;
+    }
+
+    .customer-name {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.25rem;
+    }
+
+    .customer-email {
+        color: #6b7280;
+    }
+
+    /* Items Table */
+    .items-section {
+        padding: 2.5rem;
+    }
+
+    .items-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .items-table thead th {
+        text-align: left;
+        padding: 1rem;
+        background: #f9fafb;
+        color: #6b7280;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+    .items-table tbody td {
+        padding: 1.5rem 1rem;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .product-cell {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .product-image {
+        width: 60px;
+        height: 60px;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        border-radius: 8px;
+        background-color: #f9fafb;
+    }
+
+    .product-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .product-name {
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    .product-id {
+        font-size: 0.85rem;
+        color: #9ca3af;
+    }
+
+    .text-right {
+        text-align: right;
+    }
+
+    /* Totals Section */
+    .totals-section {
+        padding: 2rem 2.5rem;
+        background: #f9fafb;
+        border-top: 2px solid #e5e7eb;
+    }
+
+    .total-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        font-size: 1rem;
+    }
+
+    .total-row.grand-total {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1f2937;
+        padding-top: 1.5rem;
+        margin-top: 1rem;
+        border-top: 2px solid #e5e7eb;
+    }
+
+    .total-row.grand-total span:last-child {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    /* Actions */
+    .invoice-actions {
+        display: flex;
+        gap: 1rem;
+        padding: 2.5rem;
+        justify-content: center;
+    }
+
+    .print-btn, .continue-btn {
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s;
+        text-decoration: none;
+    }
+
+    .print-btn {
+        background: white;
+        border: 2px solid #e5e7eb;
+        color: #374151;
+        cursor: pointer;
+    }
+
+    .print-btn:hover {
+        border-color: #667eea;
+        color: #667eea;
+    }
+
+    .continue-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+    }
+
+    .continue-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(102, 126, 234, 0.4);
+    }
+
+    .print-btn svg, .continue-btn svg {
+        stroke-width: 2;
+    }
+
+    /* Thank You */
+    .thank-you {
+        text-align: center;
+        padding: 2rem 2.5rem 3rem;
+        border-top: 1px solid #f3f4f6;
+    }
+
+    .thank-you p {
+        font-size: 1.1rem;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+
+    .thank-you .small-text {
+        font-size: 0.9rem;
+        color: #9ca3af;
+    }
+
+    /* Print Styles */
+    @media print {
+        body {
+            background: white;
+        }
+
+        .modern-navbar, .modern-footer, .invoice-actions {
+            display: none;
+        }
+
+        .invoice-container {
+            padding: 0;
+        }
+
+        .invoice-card {
+            box-shadow: none;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .invoice-header {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        .invoice-meta {
+            text-align: left;
+        }
+
+        .product-cell {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .invoice-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+
+<%- include('footer.ejs') %>

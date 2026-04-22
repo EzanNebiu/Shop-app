@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orders - Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="admin-layout">
+    <%- include('../admin/sidebar') %>
+
+    <main class="admin-main">
+        <div class="admin-header">
+            <h1>Orders Management</h1>
+        </div>
+
+        <div class="products-table-container">
+            <table class="products-table">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Total</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% orders.forEach(function(order) { %>
+                        <tr>
+                            <td><strong>#<%= order.id %></strong></td>
+                            <td>
+                                <div>
+                                    <strong><%= order.perdoruesi_emri %></strong><br>
+                                    <small style="color: #9ca3af;"><%= order.perdoruesi_email %></small>
+                                </div>
+                            </td>
+                            <td><%= order.produkti_emri %></td>
+                            <td><%= order.sasia %></td>
+                            <td><strong>€<%= order.cmimi_total %></strong></td>
+                            <td><%= new Date(order.data_e_blerjes).toLocaleDateString() %></td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<%- include('../admin/styles') %>
+
+</body>
+</html>
