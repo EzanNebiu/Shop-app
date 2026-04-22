@@ -495,39 +495,6 @@ Ose përdorni panelin admin për të shtuar produkte.
 - Variablat dhe funksionet janë në shqip (emri, pershkrimi, perdoruesi, etj.)
 - Comments në shqip për lehtësi të mirëmbajtjes
 
-## 🚧 Përmirësime të Ardhshme
-
-- [ ] Upload i imazheve (përmes paneli admin)
-- [ ] Filtrimi avancuar i produkteve (kategori, çmim, etj.)
-- [ ] Export të raporteve (CSV, PDF)
-- [ ] Email notifications për porosi të reja
-- [ ] Real-time updates me WebSocket
-- [ ] Password recovery (reset password)
-- [ ] Bcrypt për password hashing
-- [ ] Payment integration (Stripe, PayPal)
-- [ ] Product categories dhe filters
-- [ ] Product reviews dhe ratings
-- [ ] Wishlist functionality
-- [ ] Coupon/discount codes
-- [ ] Shipping address management
-- [ ] Order tracking system
-- [ ] Dark mode theme
-- [ ] Multi-language support (anglisht, shqip)
-- [ ] Admin notifications për stok të ulët
-- [ ] Sales reports dhe analytics
-- [ ] Customer support chat
-- [ ] Mobile app (React Native)
-
-## 🎯 Si të Kontribuoni
-
-Kontribute janë të mirëpritura! Nëse dëshironi të kontribuoni:
-
-1. Fork projektin
-2. Krijoni një branch të ri (`git checkout -b feature/AmazingFeature`)
-3. Commit ndryshimet tuaja (`git commit -m 'Add some AmazingFeature'`)
-4. Push në branch (`git push origin feature/AmazingFeature`)
-5. Hapni një Pull Request
-
 
 ## 👨‍💻 Zhvilluar Nga
 
