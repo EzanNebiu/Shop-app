@@ -3,7 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-commerce</title>
+<%
+    const _seo = (typeof seo !== 'undefined' && seo) ? seo : {};
+    const _title = _seo.title || 'ModernShop – Electronics, Laptops & Phones Online';
+    const _desc = _seo.description || 'Shop laptops, smartphones, headphones, monitors and gaming accessories online. Clear prices, live stock and instant invoices.';
+%>
+    <title><%= _title %></title>
+    <meta name="description" content="<%= _desc %>">
+    <meta name="author" content="Ezan M. Nebija">
+    <meta name="robots" content="<%= _seo.noindex ? 'noindex, nofollow' : 'index, follow' %>">
+    <% if (_seo.url && !_seo.noindex) { %><link rel="canonical" href="<%= _seo.url %>"><% } %>
+    <meta name="theme-color" content="#0891b2">
+    <meta property="og:type" content="<%= _seo.ogType || 'website' %>">
+    <meta property="og:site_name" content="ModernShop">
+    <meta property="og:title" content="<%= _title %>">
+    <meta property="og:description" content="<%= _desc %>">
+    <% if (_seo.url) { %><meta property="og:url" content="<%= _seo.url %>"><% } %>
+    <% if (_seo.image) { %><meta property="og:image" content="<%= _seo.image %>"><meta name="twitter:image" content="<%= _seo.image %>"><% } %>
+    <meta name="twitter:card" content="<%= _seo.image ? 'summary_large_image' : 'summary' %>">
+    <meta name="twitter:title" content="<%= _title %>">
+    <meta name="twitter:description" content="<%= _desc %>">
+    <% if (_seo.jsonLd) { %><script type="application/ld+json"><%- JSON.stringify(_seo.jsonLd).replace(/</g, '\\u003c') %></script><% } %>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">

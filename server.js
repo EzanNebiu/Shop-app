@@ -22,7 +22,8 @@ const {
     adminDeleteProduct,
     adminOrders,
     adminUsers,
-    adminLogout
+    adminLogout,
+    sitemap
 } = require('./logjika/logjika');
 
 app.use(session({
@@ -38,6 +39,45 @@ app.use(express.urlencoded({ extended: true }));
 
 app.set('view engine', 'ejs');
 app.set('views', 'faqet');
+
+// ==================== SEO ====================
+const SITE_URL = (process.env.SITE_URL || 'https://shop.ezannebija.dev').replace(/\/$/, '');
+// Pages with personal data or no search value must not be indexed
+const PRIVATE_PATHS = /^\/(admin|profili|orders|fatura|cart|checkout|login|register)(\/|$)/;
+
+app.use(function(req, res, next) {
+    res.locals.seo = {
+        url: SITE_URL + req.path,
+        noindex: PRIVATE_PATHS.test(req.path)
+    };
+    if (res.locals.seo.noindex) {
+        res.set('X-Robots-Tag', 'noindex, nofollow');
+    }
+    next();
+});
+
+app.get('/robots.txt', function(req, res) {
+    res.type('text/plain').send([
+        'User-agent: *',
+        'Allow: /',
+        'Disallow: /admin',
+        'Disallow: /profili',
+        'Disallow: /orders',
+        'Disallow: /fatura',
+        'Disallow: /cart',
+        'Disallow: /checkout',
+        'Disallow: /login',
+        'Disallow: /register',
+        'Disallow: /*?kerkimi=',
+        '',
+        'Sitemap: ' + SITE_URL + '/sitemap.xml',
+        ''
+    ].join('\n'));
+});
+
+app.get('/sitemap.xml', function(req, res) {
+    sitemap(req, res, SITE_URL);
+});
 
 app.get('/', function(req, res) {
     faqjaKryesore(req, res);

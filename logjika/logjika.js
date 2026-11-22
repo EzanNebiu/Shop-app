@@ -83,6 +83,29 @@ function produkti(req, res) {
 
     pool.query(`SELECT * FROM produktet WHERE id = ?`, [produkti_id], function (err, results) {
         if (!err && results[0]) {
+            const p = results[0]
+            const pershkrimi = String(p.pershkrimi || '').trim()
+            res.locals.seo = Object.assign({}, res.locals.seo, {
+                title: `${p.emri} – €${Number(p.cmimi).toFixed(2)} | ModernShop`,
+                description: (pershkrimi ? pershkrimi + '. ' : '') + `Bli ${p.emri} online per €${Number(p.cmimi).toFixed(2)}.`,
+                image: p.foto || undefined,
+                ogType: 'product',
+                jsonLd: {
+                    '@context': 'https://schema.org',
+                    '@type': 'Product',
+                    name: p.emri,
+                    description: pershkrimi || p.emri,
+                    image: p.foto || undefined,
+                    sku: String(p.id),
+                    offers: {
+                        '@type': 'Offer',
+                        price: Number(p.cmimi).toFixed(2),
+                        priceCurrency: 'EUR',
+                        availability: p.stoku > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+                        url: res.locals.seo && res.locals.seo.url
+                    }
+                }
+            })
             res.render('produkti', {
                 produkti: results[0],
                 perdoruesi: req.session.perdoruesi ?? false,
@@ -740,7 +763,29 @@ function userOrders(req, res) {
     })
 }
 
+function sitemap(req, res, siteUrl) {
+    pool.query('SELECT id, created_at FROM produktet ORDER BY id', function (err, produktet) {
+        if (err) {
+            console.log('Error sitemap:', err.message)
+            produktet = []
+        }
+        const urls = [`  <url><loc>${siteUrl}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`]
+            .concat(produktet.map(function (p) {
+                const lastmod = p.created_at ? `<lastmod>${new Date(p.created_at).toISOString().slice(0, 10)}</lastmod>` : ''
+                return `  <url><loc>${siteUrl}/produkti/${p.id}</loc>${lastmod}<changefreq>weekly</changefreq><priority>0.8</priority></url>`
+            }))
+        res.type('application/xml').send(
+            `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.join('\n')}
+</urlset>
+`
+        )
+    })
+}
+
 module.exports = {
+    sitemap,
     faqjaKryesore,
     produkti,
     regjistrohu,
