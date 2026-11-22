@@ -1,3 +1,5 @@
+require('dotenv').config();
+const crypto = require('crypto');
 const express = require('express');
 const session = require('express-session');
 const app = express();
@@ -24,9 +26,11 @@ const {
 } = require('./logjika/logjika');
 
 app.use(session({
-    secret: 'secret',
+    // Set SESSION_SECRET in .env; the old hard-coded 'secret' let anyone forge session cookies
+    secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
     resave: false,
-    saveUninitialized: false
+    saveUninitialized: false,
+    cookie: { httpOnly: true, sameSite: 'lax' }
 }));
 
 app.use(express.json({ type: "*/*" }));
@@ -71,7 +75,9 @@ app.get('/logout', function(req, res) {
     req.session.isLoggedIn = null;
     req.session.perdoruesi = null;
 
-    res.redirect('/');
+    req.session.save(function() {
+        res.redirect('/');
+    });
 });
 
 app.get('/profili', function(req, res) {
@@ -156,6 +162,19 @@ app.get('/admin/logout', function(req, res) {
     adminLogout(req, res);
 });
 
-app.listen(3000, function() {
-    console.log("Serveri u startua ne portin 3000");
+// Unknown pages
+app.use(function(req, res) {
+    res.status(404).render('404');
+});
+
+// Errors (e.g. malformed JSON) - respond instead of dumping a stack trace
+app.use(function(err, req, res, next) {
+    console.log('Error:', err.message);
+    const status = err.status && err.status < 500 ? err.status : 500;
+    res.status(status).send({ error: true, mesazhi: status === 400 ? 'Kerkese e pavlefshme' : 'Gabim ne server' });
+});
+
+const PORT = Number(process.env.SHOP_PORT) || 3000;
+app.listen(PORT, function() {
+    console.log("Serveri u startua ne portin " + PORT);
 });

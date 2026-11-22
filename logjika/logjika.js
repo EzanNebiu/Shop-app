@@ -1,37 +1,66 @@
 const mysql2 = require('mysql2')
 const nodemailer = require('nodemailer')
+const bcrypt = require('bcryptjs')
 
-const connection = mysql2.createConnection({
-    host: 'localhost',
-    port: 3306,
-    user: 'root',
-    password: '',
-    database: 'shop_163'
+// A pool (instead of one shared connection) so purchase transactions from
+// different users can't interleave, and a dropped connection doesn't kill the app.
+const pool = mysql2.createPool({
+    host: process.env.MYSQL_HOST || 'localhost',
+    port: Number(process.env.MYSQL_PORT) || 3306,
+    user: process.env.MYSQL_USER || 'root',
+    password: process.env.MYSQL_PASSWORD || '',
+    database: process.env.MYSQL_DATABASE || 'shop_163',
+    waitForConnections: true,
+    connectionLimit: 10
 })
 
 const transporter = nodemailer.createTransport({
-    host: "localhost",
-    port: 1025,
+    host: process.env.EMAIL_HOST || "localhost",
+    port: Number(process.env.EMAIL_PORT) || 1025,
     ignoreTLS: false
 })
 
-connection.connect(function (err) {
+pool.getConnection(function (err, conn) {
     if (err) {
         console.log("Error databaza : ", err.message)
+    } else {
+        conn.release()
     }
 })
 
+const BCRYPT_ROUNDS = 10
+
+function isBcryptHash(value) {
+    return typeof value === 'string' && /^\$2[aby]\$\d{2}\$/.test(value)
+}
+
+// Escape user-controlled text before putting it into the HTML invoice email
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+}
+
+function parsePositiveInt(value) {
+    const n = Number(value)
+    return Number.isInteger(n) && n > 0 ? n : null
+}
+
 function faqjaKryesore(req, res) {
-    let query = ``
     let kerkimi = req.query.kerkimi
+    let query = `SELECT * FROM produktet`
+    let params = []
 
     if (kerkimi) {
-        query = `SELECT * FROM produktet WHERE emri LIKE '%${kerkimi}%'`
-    } else {
-        query = `SELECT * FROM produktet`
+        // Parameterised: the search box used to be injected straight into the SQL
+        query = `SELECT * FROM produktet WHERE emri LIKE ?`
+        params = [`%${kerkimi}%`]
     }
 
-    connection.query(query, function (err, results) {
+    pool.query(query, params, function (err, results) {
         if (err) {
             console.log("Error fetching products:", err.message)
             results = []
@@ -47,109 +76,166 @@ function faqjaKryesore(req, res) {
 }
 
 function produkti(req, res) {
-    let produkti_id = req.params.id
+    let produkti_id = parsePositiveInt(req.params.id)
+    if (!produkti_id) {
+        return res.status(404).render('404')
+    }
 
-    let query = `SELECT * FROM produktet WHERE id = ${produkti_id}`
-
-    connection.query(query, function (err, results) {
-
-        if (results[0]) {
+    pool.query(`SELECT * FROM produktet WHERE id = ?`, [produkti_id], function (err, results) {
+        if (!err && results[0]) {
             res.render('produkti', {
                 produkti: results[0],
                 perdoruesi: req.session.perdoruesi ?? false,
                 isLoggedIn: req.session.isLoggedIn ?? false
             })
         } else {
-            res.render('404')
+            if (err) console.log("Error fetching product:", err.message)
+            res.status(404).render('404')
         }
     })
 }
 
 function regjistrohu(req, res) {
-    let emri = req.body.emri
-    let email = req.body.email
-    let password = req.body.password
+    let emri = (req.body.emri || '').trim()
+    let email = (req.body.email || '').trim().toLowerCase()
+    let password = req.body.password || ''
 
-    let query_email = `SELECT * FROM perdoruesit WHERE email = '${email}'`
+    if (!emri || !email || !password) {
+        return res.send({
+            error: true,
+            mesazhi: "Plotesoni te gjitha fushat"
+        })
+    }
 
-    connection.query(query_email, function (err, results) {
+    pool.query(`SELECT id FROM perdoruesit WHERE email = ?`, [email], function (err, results) {
+        if (err) {
+            console.log("Error register:", err.message)
+            return res.send({ error: true, mesazhi: "Regjistrimi deshtoj" })
+        }
+
         if (results.length > 0) {
             // Emaila ekziston
-            res.send({
+            return res.send({
                 error: true,
                 mesazhi: "Emaila ekziston"
             })
-        } else {
-            let query_register = `INSERT INTO perdoruesit (emri, email, fjalekalimi) 
-                                    VALUES('${emri}', '${email}', '${password}')`
-
-            connection.query(query_register, function (err2, results2) {
-                res.send({
-                    error: false,
-                    mesazhi: "U regjistruat me sukses"
-                })
-            })
         }
+
+        // Passwords used to be stored in plain text
+        bcrypt.hash(password, BCRYPT_ROUNDS, function (hashErr, hash) {
+            if (hashErr) {
+                return res.send({ error: true, mesazhi: "Regjistrimi deshtoj" })
+            }
+
+            pool.query(
+                `INSERT INTO perdoruesit (emri, email, fjalekalimi) VALUES (?, ?, ?)`,
+                [emri, email, hash],
+                function (err2) {
+                    if (err2) {
+                        console.log("Error register:", err2.message)
+                        return res.send({ error: true, mesazhi: "Regjistrimi deshtoj" })
+                    }
+                    res.send({
+                        error: false,
+                        mesazhi: "U regjistruat me sukses"
+                    })
+                }
+            )
+        })
     })
 }
 
 function kycu(req, res) {
-    let email = req.body.email
-    let password = req.body.password
+    let email = (req.body.email || '').trim().toLowerCase()
+    let password = req.body.password || ''
 
-    let query_login = `SELECT id, emri, email FROM perdoruesit WHERE email = "${email}" AND fjalekalimi = "${password}"`
+    const gabim = {
+        error: true,
+        mesazhi: 'Fjalekalimi ose emaila jane gabim'
+    }
 
-    connection.query(query_login, function (err, results) {
-        if (results.length == 0) {
-            res.send({
-                error: true,
-                mesazhi: 'Fjalekalimi ose emaila jane gabim'
-            })
-        } else {
-            req.session.isLoggedIn = true
-            req.session.perdoruesi = {
-                id: results[0].id,
-                emri: results[0].emri,
-                email: results[0].email
+    // Login used to be `WHERE email = "${email}"`, so `" OR "1"="1` logged in as anyone
+    pool.query(
+        `SELECT id, emri, email, fjalekalimi FROM perdoruesit WHERE email = ?`,
+        [email],
+        function (err, results) {
+            if (err || results.length == 0) {
+                if (err) console.log("Error login:", err.message)
+                return res.send(gabim)
             }
 
-            res.send({
-                error: false
-            })
+            const user = results[0]
+
+            const finishLogin = function () {
+                // Regenerate to avoid session fixation
+                req.session.regenerate(function (regenErr) {
+                    if (regenErr) {
+                        return res.send({ error: true, mesazhi: 'Kycja deshtoj' })
+                    }
+                    req.session.isLoggedIn = true
+                    req.session.perdoruesi = {
+                        id: user.id,
+                        emri: user.emri,
+                        email: user.email
+                    }
+                    res.send({ error: false })
+                })
+            }
+
+            if (isBcryptHash(user.fjalekalimi)) {
+                bcrypt.compare(password, user.fjalekalimi, function (cmpErr, ok) {
+                    if (cmpErr || !ok) return res.send(gabim)
+                    finishLogin()
+                })
+            } else if (user.fjalekalimi === password) {
+                // Older account with a plain-text password: let them in once and upgrade it to a hash
+                bcrypt.hash(password, BCRYPT_ROUNDS, function (hashErr, hash) {
+                    if (!hashErr) {
+                        pool.query(`UPDATE perdoruesit SET fjalekalimi = ? WHERE id = ?`, [hash, user.id], function () {})
+                    }
+                    finishLogin()
+                })
+            } else {
+                res.send(gabim)
+            }
         }
-    })
+    )
 }
 
 function ndryshoProfilin(req, res) {
-
-    let emri = req.body.emri
-    let email = req.body.email
-    let password = req.body.password
-
-    let query = ''
-
-    if (password == "") {
-        query = `UPDATE perdoruesit 
-                SET 
-                    emri = "${emri}", 
-                    email = "${email}"
-                WHERE id = ${req.session.perdoruesi.id}`
-    } else {
-        query = `UPDATE perdoruesit 
-                SET 
-                    emri = "${emri}", 
-                    email = "${email}",
-                    fjalekalimi = "${password}"
-                WHERE id = ${req.session.perdoruesi.id}`
+    // Used to crash the server (req.session.perdoruesi.id of null) when not logged in
+    if (!req.session.isLoggedIn || !req.session.perdoruesi) {
+        return res.send({
+            error: true,
+            mesazhi: "Ju lutem kycuni"
+        })
     }
 
-    connection.query(query, function (err, results) {
-        if (err) {
-            res.send({
-                error: true,
-                mesazhi: "Ndryshimi i profilit deshtoj"
-            })
-        } else {
+    let emri = (req.body.emri || '').trim()
+    let email = (req.body.email || '').trim().toLowerCase()
+    let password = req.body.password || ''
+    const id = req.session.perdoruesi.id
+
+    if (!emri || !email) {
+        return res.send({ error: true, mesazhi: "Emri dhe emaila jane te detyrueshme" })
+    }
+
+    const ruaj = function (hash) {
+        let query = `UPDATE perdoruesit SET emri = ?, email = ? WHERE id = ?`
+        let params = [emri, email, id]
+
+        if (hash) {
+            query = `UPDATE perdoruesit SET emri = ?, email = ?, fjalekalimi = ? WHERE id = ?`
+            params = [emri, email, hash, id]
+        }
+
+        pool.query(query, params, function (err) {
+            if (err) {
+                return res.send({
+                    error: true,
+                    mesazhi: err.code === 'ER_DUP_ENTRY' ? "Emaila ekziston" : "Ndryshimi i profilit deshtoj"
+                })
+            }
 
             req.session.perdoruesi.emri = emri
             req.session.perdoruesi.email = email
@@ -158,8 +244,19 @@ function ndryshoProfilin(req, res) {
                 error: false,
                 mesazhi: "Profili u ndryshua me sukses"
             })
-        }
-    })
+        })
+    }
+
+    if (password == "") {
+        ruaj(null)
+    } else {
+        bcrypt.hash(password, BCRYPT_ROUNDS, function (hashErr, hash) {
+            if (hashErr) {
+                return res.send({ error: true, mesazhi: "Ndryshimi i profilit deshtoj" })
+            }
+            ruaj(hash)
+        })
+    }
 }
 
 function blejProduktin(req, res) {
@@ -171,80 +268,129 @@ function blejProduktin(req, res) {
         })
     }
 
-    let produkti_id = req.body.produkti_id
-    let sasia = req.body.sasia
-    let cmimi = req.body.cmimi
-    let cmimi_total = cmimi * sasia
+    const deshtoj = function (mesazhi) {
+        res.send({
+            error: true,
+            redirect: false,
+            mesazhi: mesazhi || "Blerja deshtoj"
+        })
+    }
+
+    let produkti_id = parsePositiveInt(req.body.produkti_id)
+    let sasia = parsePositiveInt(req.body.sasia)
     let perdoruesi_id = req.session.perdoruesi.id
 
-    // Query 1
-    // Me e insertu te dhanata e blerjes
-    let query_blerja = `INSERT INTO blerjet (perdoruesi_id, produkti_id, sasia, cmimi_total) 
-                            VALUES (${perdoruesi_id}, ${produkti_id}, ${sasia}, ${cmimi_total})`
+    if (!produkti_id || !sasia) {
+        return deshtoj("Sasia ose produkti jane te pavlefshme")
+    }
 
-    connection.query(query_blerja, function (err1, results1) {
-        let blerja_id = results1.insertId
+    // The price used to come from the browser (req.body.cmimi), so anyone could buy at any price,
+    // and stock was never checked. Now the price comes from the database and the stock check,
+    // order and stock update happen in one transaction.
+    pool.getConnection(function (connErr, conn) {
+        if (connErr) {
+            console.log("Error blerja:", connErr.message)
+            return deshtoj()
+        }
 
-        let query_update =
-            `UPDATE 
-                produktet 
-             SET stoku = stoku - ${sasia}
-             WHERE id = ${produkti_id}
-            `
+        const rollback = function (mesazhi, err) {
+            if (err) console.log("Error blerja:", err.message)
+            conn.rollback(function () {
+                conn.release()
+                deshtoj(mesazhi)
+            })
+        }
 
-        connection.query(query_update, function (err2, results2) {
-            if (err2) {
-                res.send({
-                    error: true,
-                    redirect: false,
-                    mesazhi: "Blerja deshtoj"
-                })
-            } else {
+        conn.beginTransaction(function (txErr) {
+            if (txErr) {
+                conn.release()
+                return deshtoj()
+            }
 
-                let query_fatura = `
-                    SELECT 
-                        B.id AS blerja_id,
-                        B.sasia,
-                        B.cmimi_total,
-                        B.data_e_blerjes,
-                        P.id AS produkti_id,
-                        P.emri AS emri,
-                        P.foto
-                    FROM blerjet B 
-                    INNER JOIN produktet P ON P.id = B.produkti_id
-                    WHERE B.id = ${blerja_id}
-                `
+            conn.query(
+                `SELECT cmimi, stoku FROM produktet WHERE id = ? FOR UPDATE`,
+                [produkti_id],
+                function (err0, produktet) {
+                    if (err0) return rollback(null, err0)
+                    if (!produktet[0]) return rollback("Produkti nuk ekziston")
+                    if (produktet[0].stoku < sasia) return rollback("Nuk ka mjaftueshem ne stok")
 
-                connection.query(query_fatura, function (err3, results3) {
+                    const cmimi_total = Number(produktet[0].cmimi) * sasia
 
-                    results3[0].perdoruesi = {}
-                    results3[0].perdoruesi = {
-                        emri: req.session.perdoruesi.emri,
-                        email: req.session.perdoruesi.email
-                    }
+                    conn.query(
+                        `INSERT INTO blerjet (perdoruesi_id, produkti_id, sasia, cmimi_total) VALUES (?, ?, ?, ?)`,
+                        [perdoruesi_id, produkti_id, sasia, cmimi_total],
+                        function (err1, results1) {
+                            if (err1) return rollback(null, err1)
+                            const blerja_id = results1.insertId
 
+                            conn.query(
+                                `UPDATE produktet SET stoku = stoku - ? WHERE id = ?`,
+                                [sasia, produkti_id],
+                                function (err2) {
+                                    if (err2) return rollback(null, err2)
 
-                    const mail_options = {
-                        from: "shop@jcoders.com",
-                        to: req.session.perdoruesi.email,
-                        subject: "Fatura",
-                        html: gjeneroEmail(results3[0])
-                    }
-    
-                    transporter.sendMail(mail_options, function (error, info) {
-                        if (error) {
-                            console.log("Emaila deshtoj", error)
-                        } else {
-                            console.log(info)
+                                    conn.commit(function (commitErr) {
+                                        if (commitErr) return rollback(null, commitErr)
+                                        conn.release()
+
+                                        res.send({
+                                            error: false,
+                                            blerja_id: blerja_id,
+                                            mesazhi: "Blerja u perfundua me sukses"
+                                        })
+
+                                        dergoFaturen(blerja_id, req.session.perdoruesi)
+                                    })
+                                }
+                            )
                         }
-                    })
-    
-                    res.send({
-                        error: false,
-                        blerja_id: blerja_id,
-                        mesazhi: "Blerja u perfundua me sukses"
-                    })
-                })
+                    )
+                }
+            )
+        })
+    })
+}
+
+// Email the invoice after the purchase has been committed (a mail failure no longer affects the order)
+function dergoFaturen(blerja_id, perdoruesi) {
+    let query_fatura = `
+        SELECT
+            B.id AS blerja_id,
+            B.sasia,
+            B.cmimi_total,
+            B.data_e_blerjes,
+            P.id AS produkti_id,
+            P.emri AS emri,
+            P.foto
+        FROM blerjet B
+        INNER JOIN produktet P ON P.id = B.produkti_id
+        WHERE B.id = ?
+    `
+
+    pool.query(query_fatura, [blerja_id], function (err, results) {
+        if (err || !results[0]) {
+            if (err) console.log("Error fatura:", err.message)
+            return
+        }
+
+        results[0].perdoruesi = {
+            emri: perdoruesi.emri,
+            email: perdoruesi.email
+        }
+
+        const mail_options = {
+            from: process.env.EMAIL_FROM || "shop@jcoders.com",
+            to: perdoruesi.email,
+            subject: "Fatura",
+            html: gjeneroEmail(results[0])
+        }
+
+        transporter.sendMail(mail_options, function (error, info) {
+            if (error) {
+                console.log("Emaila deshtoj", error.message)
+            } else {
+                console.log("Fatura u dergua:", info.messageId)
             }
         })
     })
@@ -252,6 +398,7 @@ function blejProduktin(req, res) {
 
 
 function gjeneroEmail(fatura) {
+    const e = escapeHtml
     return `
             <div class="fatura">
                 <div>
@@ -280,14 +427,14 @@ function gjeneroEmail(fatura) {
 
                         <tbody>
                             <tr>
-                                <td>${fatura.produkti_id}</td>
+                                <td>${e(fatura.produkti_id)}</td>
                                 <td>
-                                    <img src="${fatura.foto}" width="30" height="30" alt="">
+                                    <img src="${e(fatura.foto)}" width="30" height="30" alt="">
                                 </td>
 
-                                <td>${ fatura.emri }</td>
-                                <td>${ fatura.sasia }</td>
-                                <td>${ fatura.cmimi_total } $</td>
+                                <td>${ e(fatura.emri) }</td>
+                                <td>${ e(fatura.sasia) }</td>
+                                <td>${ e(fatura.cmimi_total) } $</td>
                             </tr>
                         </tbody>
                     </table>
@@ -295,17 +442,17 @@ function gjeneroEmail(fatura) {
 
                 <hr>
 
-                <div> 
-                    <div class="totali">Totali: ${fatura.cmimi_total} $</div>
+                <div>
+                    <div class="totali">Totali: ${e(fatura.cmimi_total)} $</div>
                 </div>
-                
+
                 <hr>
 
                 <div>
-                    <h4>Numri i fatures: # ${fatura.blerja_id}</h4>
-                    <p>Bleresi: ${ fatura.perdoruesi.emri } </p>
-                    <p>Email: ${ fatura.perdoruesi.email } </p>
-                    <p>Data: ${fatura.data_e_blerjes}</p>
+                    <h4>Numri i fatures: # ${e(fatura.blerja_id)}</h4>
+                    <p>Bleresi: ${ e(fatura.perdoruesi.emri) } </p>
+                    <p>Email: ${ e(fatura.perdoruesi.email) } </p>
+                    <p>Data: ${e(fatura.data_e_blerjes)}</p>
                 </div>
 
 
@@ -347,10 +494,14 @@ function fatura(req, res) {
         return res.redirect('/')
     }
 
-    const blerja_id = req.params.id
+    const blerja_id = parsePositiveInt(req.params.id)
+    if (!blerja_id) {
+        return res.status(404).render('404')
+    }
 
+    // Only the buyer can see their invoice (any logged-in user could open /fatura/<any id> before)
     let query = `
-        SELECT 
+        SELECT
             B.id AS blerja_id,
             B.sasia,
             B.cmimi_total,
@@ -358,15 +509,16 @@ function fatura(req, res) {
             P.id AS produkti_id,
             P.emri AS emri,
             P.foto
-        FROM blerjet B 
+        FROM blerjet B
         INNER JOIN produktet P ON P.id = B.produkti_id
-        WHERE B.id = ${blerja_id}
+        WHERE B.id = ? AND B.perdoruesi_id = ?
     `
 
-    connection.query(query, function (err, results) {
+    pool.query(query, [blerja_id, req.session.perdoruesi.id], function (err, results) {
 
-        if (!results[0]) {
-            res.render('404')
+        if (err || !results[0]) {
+            if (err) console.log("Error fatura:", err.message)
+            res.status(404).render('404')
         } else {
             res.render('fatura', {
                 perdoruesi: req.session.perdoruesi,
@@ -385,16 +537,17 @@ function adminDashboard(req, res) {
 
     // Get stats
     let statsQuery = `
-        SELECT 
+        SELECT
             (SELECT COUNT(*) FROM produktet) as total_products,
             (SELECT COUNT(*) FROM perdoruesit) as total_users,
             (SELECT COUNT(*) FROM blerjet) as total_orders,
             (SELECT COALESCE(SUM(cmimi_total), 0) FROM blerjet) as total_revenue
     `
 
-    connection.query(statsQuery, function(err, stats) {
+    pool.query(statsQuery, function(err, stats) {
+        if (err) console.log("Error dashboard:", err.message)
         res.render('admin/dashboard', {
-            stats: stats[0],
+            stats: (stats && stats[0]) || { total_products: 0, total_users: 0, total_orders: 0, total_revenue: 0 },
             isAdmin: true
         })
     })
@@ -426,10 +579,11 @@ function adminProducts(req, res) {
     }
 
     let query = 'SELECT * FROM produktet ORDER BY id DESC'
-    
-    connection.query(query, function(err, products) {
+
+    pool.query(query, function(err, products) {
+        if (err) console.log("Error products:", err.message)
         res.render('admin/products', {
-            products: products,
+            products: products || [],
             isAdmin: true
         })
     })
@@ -442,10 +596,10 @@ function adminAddProduct(req, res) {
 
     let { emri, pershkrimi, cmimi, stoku, foto } = req.body
 
-    let query = `INSERT INTO produktet (emri, pershkrimi, cmimi, stoku, foto) 
+    let query = `INSERT INTO produktet (emri, pershkrimi, cmimi, stoku, foto)
                  VALUES (?, ?, ?, ?, ?)`
 
-    connection.query(query, [emri, pershkrimi, cmimi, stoku, foto], function(err, results) {
+    pool.query(query, [emri, pershkrimi, cmimi, stoku, foto], function(err, results) {
         if (err) {
             res.send({ error: true, mesazhi: 'Failed to add product' })
         } else {
@@ -461,11 +615,11 @@ function adminUpdateProduct(req, res) {
 
     let { id, emri, pershkrimi, cmimi, stoku, foto } = req.body
 
-    let query = `UPDATE produktet 
+    let query = `UPDATE produktet
                  SET emri = ?, pershkrimi = ?, cmimi = ?, stoku = ?, foto = ?
                  WHERE id = ?`
 
-    connection.query(query, [emri, pershkrimi, cmimi, stoku, foto, id], function(err) {
+    pool.query(query, [emri, pershkrimi, cmimi, stoku, foto, id], function(err) {
         if (err) {
             res.send({ error: true, mesazhi: 'Failed to update product' })
         } else {
@@ -483,9 +637,15 @@ function adminDeleteProduct(req, res) {
 
     let query = 'DELETE FROM produktet WHERE id = ?'
 
-    connection.query(query, [id], function(err) {
+    pool.query(query, [id], function(err) {
         if (err) {
-            res.send({ error: true, mesazhi: 'Failed to delete product' })
+            // Products that already have orders can't be deleted (foreign key)
+            res.send({
+                error: true,
+                mesazhi: err.code === 'ER_ROW_IS_REFERENCED_2'
+                    ? 'Product has orders and cannot be deleted'
+                    : 'Failed to delete product'
+            })
         } else {
             res.send({ error: false, mesazhi: 'Product deleted successfully' })
         }
@@ -498,7 +658,7 @@ function adminOrders(req, res) {
     }
 
     let query = `
-        SELECT 
+        SELECT
             B.id,
             B.sasia,
             B.cmimi_total,
@@ -512,9 +672,10 @@ function adminOrders(req, res) {
         ORDER BY B.data_e_blerjes DESC
     `
 
-    connection.query(query, function(err, orders) {
+    pool.query(query, function(err, orders) {
+        if (err) console.log("Error orders:", err.message)
         res.render('admin/orders', {
-            orders: orders,
+            orders: orders || [],
             isAdmin: true
         })
     })
@@ -526,10 +687,11 @@ function adminUsers(req, res) {
     }
 
     let query = 'SELECT id, emri, email, created_at FROM perdoruesit ORDER BY created_at DESC'
-    
-    connection.query(query, function(err, users) {
+
+    pool.query(query, function(err, users) {
+        if (err) console.log("Error users:", err.message)
         res.render('admin/users', {
-            users: users,
+            users: users || [],
             isAdmin: true
         })
     })
@@ -549,7 +711,7 @@ function userOrders(req, res) {
     const perdoruesi_id = req.session.perdoruesi.id
 
     let query = `
-        SELECT 
+        SELECT
             B.id,
             B.sasia,
             B.cmimi_total,
@@ -560,16 +722,16 @@ function userOrders(req, res) {
             P.cmimi as produkti_cmimi
         FROM blerjet B
         INNER JOIN produktet P ON B.produkti_id = P.id
-        WHERE B.perdoruesi_id = ${perdoruesi_id}
+        WHERE B.perdoruesi_id = ?
         ORDER BY B.data_e_blerjes DESC
     `
 
-    connection.query(query, function(err, orders) {
+    pool.query(query, [perdoruesi_id], function(err, orders) {
         if (err) {
             console.log('Error fetching orders:', err)
             return res.render('404')
         }
-        
+
         res.render('orders', {
             orders: orders,
             perdoruesi: req.session.perdoruesi,
