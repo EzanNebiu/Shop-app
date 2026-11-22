@@ -32,9 +32,13 @@ function faqjaKryesore(req, res) {
     }
 
     connection.query(query, function (err, results) {
+        if (err) {
+            console.log("Error fetching products:", err.message)
+            results = []
+        }
 
         res.render('faqja_kryesore', {
-            produktet: results,
+            produktet: results || [],
             perdoruesi: req.session.perdoruesi ?? false,
             isLoggedIn: req.session.isLoggedIn ?? false
         })

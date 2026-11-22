@@ -101,6 +101,20 @@ app.get('/orders', function(req, res) {
     userOrders(req, res);
 });
 
+app.get('/cart', function(req, res) {
+    res.render('cart', {
+        perdoruesi: req.session.perdoruesi || false,
+        isLoggedIn: req.session.isLoggedIn || false
+    });
+});
+
+app.get('/checkout', function(req, res) {
+    res.render('checkout', {
+        perdoruesi: req.session.perdoruesi || false,
+        isLoggedIn: req.session.isLoggedIn || false
+    });
+});
+
 // ==================== Admin Routes ====================
 app.get('/admin/login', function(req, res) {
     adminLogin(req, res);

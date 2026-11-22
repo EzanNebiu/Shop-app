@@ -22,8 +22,8 @@
                 <path d="M12 20L18 26L28 14" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
                 <defs>
                     <linearGradient id="gradient-drawer" x1="0" y1="0" x2="40" y2="40">
-                        <stop offset="0%" style="stop-color:#667eea"/>
-                        <stop offset="100%" style="stop-color:#764ba2"/>
+                        <stop offset="0%" style="stop-color:#0891b2"/>
+                        <stop offset="100%" style="stop-color:#0891b2"/>
                     </linearGradient>
                 </defs>
             </svg>
@@ -166,8 +166,8 @@
                     <path d="M12 20L18 26L28 14" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
                     <defs>
                         <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
-                            <stop offset="0%" style="stop-color:#667eea"/>
-                            <stop offset="100%" style="stop-color:#764ba2"/>
+                            <stop offset="0%" style="stop-color:#0891b2"/>
+                            <stop offset="100%" style="stop-color:#0891b2"/>
                         </linearGradient>
                     </defs>
                 </svg>
@@ -198,6 +198,14 @@
         </button>
 
         <div class="nav-actions">
+            <a href="/cart" class="cart-icon-link">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="9" cy="21" r="1"></circle>
+                    <circle cx="20" cy="21" r="1"></circle>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                </svg>
+                <span class="cart-badge">0</span>
+            </a>
             <%  if(!isLoggedIn) { %>
                 <a href="/login" class="nav-link">Kyçu</a>
                 <a href="/register" class="btn-primary">Regjistrohu</a>
@@ -403,6 +411,19 @@ if (searchOverlayInput) {
         performSearch(e.target.value.trim(), searchOverlayResults, true);
     });
 }
+
+// Update cart count on page load
+function updateCartCount() {
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const cartBadge = document.querySelector('.cart-badge');
+    if (cartBadge) {
+        cartBadge.textContent = cart.length;
+        cartBadge.style.display = cart.length > 0 ? 'flex' : 'none';
+    }
+}
+
+// Initialize cart count
+updateCartCount();
 </script>
 
 <style>
@@ -414,7 +435,7 @@ if (searchOverlayInput) {
 
     body {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        background: #f0f9ff;
         min-height: 100vh;
     }
 
@@ -463,7 +484,7 @@ if (searchOverlayInput) {
         align-items: center;
         padding: 1.5rem;
         border-bottom: 1px solid #e5e7eb;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #0891b2;
         color: white;
     }
 
@@ -506,7 +527,7 @@ if (searchOverlayInput) {
         align-items: center;
         gap: 1rem;
         padding: 1.5rem 1.5rem;
-        background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+        background: #f8fafc;
         margin-bottom: 1rem;
     }
 
@@ -514,7 +535,7 @@ if (searchOverlayInput) {
         width: 56px;
         height: 56px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #0891b2;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -578,14 +599,14 @@ if (searchOverlayInput) {
         transform: translateY(-50%);
         width: 4px;
         height: 0;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #0891b2;
         border-radius: 0 4px 4px 0;
         transition: height 0.2s ease;
     }
 
     .drawer-link:hover {
-        background: linear-gradient(90deg, rgba(102, 126, 234, 0.05) 0%, transparent 100%);
-        color: #667eea;
+        background: rgba(8, 145, 178, 0.05);
+        color: #0891b2;
     }
 
     .drawer-link:hover::before {
@@ -598,7 +619,7 @@ if (searchOverlayInput) {
 
     .drawer-link.primary {
         margin: 1rem 1.5rem;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #0891b2;
         color: white;
         border-radius: 12px;
         padding: 1rem 1.5rem;
@@ -611,9 +632,9 @@ if (searchOverlayInput) {
     }
 
     .drawer-link.primary:hover {
-        background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        background: #0e7490;
         transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 6px 16px rgba(8, 145, 178, 0.4);
     }
 
     .drawer-link.logout {
@@ -652,7 +673,7 @@ if (searchOverlayInput) {
         gap: 1rem;
         padding: 1rem;
         border-bottom: 2px solid #e5e7eb;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #0891b2;
     }
 
     .search-back-btn {
@@ -688,7 +709,7 @@ if (searchOverlayInput) {
     }
 
     .search-overlay-icon {
-        color: #667eea;
+        color: #0891b2;
         flex-shrink: 0;
         margin-right: 0.75rem;
     }
@@ -712,7 +733,7 @@ if (searchOverlayInput) {
     .search-clear-btn {
         background: rgba(102, 126, 234, 0.1);
         border: none;
-        color: #667eea;
+        color: #0891b2;
         width: 32px;
         height: 32px;
         border-radius: 50%;
@@ -770,8 +791,8 @@ if (searchOverlayInput) {
     }
 
     .search-overlay-result-item:hover {
-        background: linear-gradient(90deg, rgba(102, 126, 234, 0.05) 0%, transparent 100%);
-        border-color: #667eea;
+        background: rgba(8, 145, 178, 0.05);
+        border-color: #0891b2;
         transform: translateX(4px);
     }
 
@@ -798,7 +819,7 @@ if (searchOverlayInput) {
     .search-overlay-result-item .search-result-price {
         font-size: 1.25rem;
         font-weight: 700;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #0891b2;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -806,9 +827,9 @@ if (searchOverlayInput) {
 
     .mobile-search-btn {
         display: none;
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        background: rgba(8, 145, 178, 0.1);
         border: none;
-        color: #667eea;
+        color: #0891b2;
         width: 44px;
         height: 44px;
         border-radius: 50%;
@@ -819,7 +840,7 @@ if (searchOverlayInput) {
     }
 
     .mobile-search-btn:hover {
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+        background: rgba(8, 145, 178, 0.2);
         transform: scale(1.05);
     }
 
@@ -863,7 +884,7 @@ if (searchOverlayInput) {
     .brand-name {
         font-size: 1.25rem;
         font-weight: 700;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #0891b2;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -951,7 +972,7 @@ if (searchOverlayInput) {
 
     .search-result-price {
         font-size: 0.9rem;
-        color: #667eea;
+        color: #0891b2;
         font-weight: 600;
         margin-top: 0.25rem;
     }
@@ -963,7 +984,7 @@ if (searchOverlayInput) {
     }
 
     .search-result-footer a {
-        color: #667eea;
+        color: #0891b2;
         text-decoration: none;
         font-weight: 600;
         font-size: 0.9rem;
@@ -1011,7 +1032,7 @@ if (searchOverlayInput) {
 
     #kerkimi:focus {
         outline: none;
-        border-color: #667eea;
+        border-color: #0891b2;
         background: white;
         box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
@@ -1035,6 +1056,41 @@ if (searchOverlayInput) {
         gap: 1rem;
     }
 
+    .cart-icon-link {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        color: #4b5563;
+        text-decoration: none;
+        border-radius: 10px;
+        transition: all 0.3s;
+    }
+
+    .cart-icon-link:hover {
+        background: #f0f9ff;
+        color: #0891b2;
+    }
+
+    .cart-badge {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        background: #ef4444;
+        color: white;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 0.15rem 0.4rem;
+        border-radius: 10px;
+        min-width: 18px;
+        height: 18px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+    }
+
     .nav-link {
         color: #4b5563;
         text-decoration: none;
@@ -1045,11 +1101,11 @@ if (searchOverlayInput) {
     }
 
     .nav-link:hover {
-        color: #667eea;
+        color: #0891b2;
     }
 
     .btn-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #0891b2;
         color: white;
         padding: 0.75rem 1.5rem;
         border-radius: 10px;
@@ -1062,12 +1118,12 @@ if (searchOverlayInput) {
 
     .btn-primary:hover {
         transform: translateY(-2px);
-        box-shadow: 0 10px 15px -3px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 10px 15px -3px rgba(8, 145, 178, 0.4);
     }
 
     .btn-outline {
-        color: #667eea;
-        border: 2px solid #667eea;
+        color: #0891b2;
+        border: 2px solid #0891b2;
         padding: 0.65rem 1.5rem;
         border-radius: 10px;
         text-decoration: none;
@@ -1077,7 +1133,7 @@ if (searchOverlayInput) {
     }
 
     .btn-outline:hover {
-        background: #667eea;
+        background: #0891b2;
         color: white;
     }
 
@@ -1101,7 +1157,7 @@ if (searchOverlayInput) {
         width: 36px;
         height: 36px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #0891b2;
         color: white;
         display: flex;
         align-items: center;
@@ -1128,17 +1184,17 @@ if (searchOverlayInput) {
             align-items: center;
             justify-content: center;
             order: -1;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            background: rgba(8, 145, 178, 0.1);
             border-radius: 12px;
             width: 44px;
             height: 44px;
             padding: 0;
-            color: #667eea;
+            color: #0891b2;
             transition: all 0.2s ease;
         }
 
         .mobile-menu-btn:hover {
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+            background: rgba(8, 145, 178, 0.2);
             transform: scale(1.05);
         }
 
